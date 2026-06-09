@@ -63,6 +63,20 @@
                         <div><label class="label">Adresse optionnelle</label><input wire:model="data.address" class="field">@error('data.address')<p class="error">{{ $message }}</p>@enderror</div>
                         <div><label class="label">Description optionnelle</label><textarea wire:model="data.description" rows="4" class="field"></textarea>@error('data.description')<p class="error">{{ $message }}</p>@enderror</div>
                         <div><label class="label">Photo publique optionnelle</label><input wire:model="profilePhoto" type="file" accept=".png,.jpg,.jpeg,.webp" class="mt-2 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-bold file:text-white">@error('profilePhoto')<p class="error">{{ $message }}</p>@enderror</div>
+                        <div class="rounded-2xl border border-slate-200 p-5">
+                            <div class="flex items-center justify-between gap-4"><div><p class="label">Champs personnalisés</p><p class="mt-1 text-sm text-slate-500">Ajoutez librement des informations supplémentaires.</p></div><button type="button" wire:click="addProgressiveField" class="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-600">Ajouter un champ</button></div>
+                            <div class="mt-5 space-y-4">
+                                @forelse ($data['custom_fields'] ?? [] as $index => $field)
+                                    <div wire:key="progressive-field-{{ $index }}" class="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto]">
+                                        <div><label class="label">Libellé</label><input wire:model="data.custom_fields.{{ $index }}.label" placeholder="Ex. Matricule" class="field">@error('data.custom_fields.'.$index.'.label')<p class="error">{{ $message }}</p>@enderror</div>
+                                        <div><label class="label">Valeur</label><input wire:model="data.custom_fields.{{ $index }}.value" placeholder="Information à afficher" class="field">@error('data.custom_fields.'.$index.'.value')<p class="error">{{ $message }}</p>@enderror</div>
+                                        <button type="button" wire:click="removeProgressiveField({{ $index }})" class="self-end rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50">Supprimer</button>
+                                    </div>
+                                @empty
+                                    <p class="rounded-xl bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">Aucun champ personnalisé.</p>
+                                @endforelse
+                            </div>
+                        </div>
                     @endif
 
                     <div class="border-t border-slate-200 pt-6">

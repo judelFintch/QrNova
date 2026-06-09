@@ -84,6 +84,20 @@ class QrCodeGenerator extends Component
         $this->refreshPreview($service);
     }
 
+    public function addProgressiveField(): void
+    {
+        $this->data['custom_fields'][] = [
+            'label' => '',
+            'value' => '',
+        ];
+    }
+
+    public function removeProgressiveField(int $index): void
+    {
+        unset($this->data['custom_fields'][$index]);
+        $this->data['custom_fields'] = array_values($this->data['custom_fields']);
+    }
+
     public function generate(QrCodeService $service): void
     {
         $validated = $this->validate($this->rules(), $this->messages());
@@ -207,6 +221,9 @@ class QrCodeGenerator extends Component
                 'data.address' => ['nullable', 'string', 'max:500'],
                 'data.website' => ['nullable', 'url:http,https', 'max:2048'],
                 'data.description' => ['nullable', 'string', 'max:1000'],
+                'data.custom_fields' => ['nullable', 'array', 'max:20'],
+                'data.custom_fields.*.label' => ['required', 'string', 'max:100'],
+                'data.custom_fields.*.value' => ['required', 'string', 'max:1000'],
             ],
             default => [],
         });

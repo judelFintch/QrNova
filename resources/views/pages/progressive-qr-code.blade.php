@@ -34,6 +34,14 @@
                         </div>
                     @endif
                 @endforeach
+                @foreach ($profile['custom_fields'] ?? [] as $field)
+                    @if (filled($field['label'] ?? null) && filled($field['value'] ?? null))
+                        <div class="grid gap-2 px-6 py-5 sm:grid-cols-[140px_1fr] sm:px-10">
+                            <dt class="text-sm font-bold text-slate-500">{{ $field['label'] }}</dt>
+                            <dd class="whitespace-pre-line break-words font-semibold text-slate-900">{{ $field['value'] }}</dd>
+                        </div>
+                    @endif
+                @endforeach
             </dl>
         </article>
     </div>

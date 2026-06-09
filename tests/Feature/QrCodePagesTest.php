@@ -157,4 +157,37 @@ class QrCodePagesTest extends TestCase
             ->assertOk()
             ->assertSee('Nouvelle adresse');
     }
+
+    public function test_custom_fields_can_be_added_and_removed_from_a_progressive_profile(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'Profil personnalisable')
+            ->set('type', 'progressive')
+            ->set('data.phone', '+243 999 000 111')
+            ->call('addProgressiveField')
+            ->call('addProgressiveField')
+            ->set('data.custom_fields.0.label', 'Champ à supprimer')
+            ->set('data.custom_fields.0.value', 'Ancienne valeur')
+            ->set('data.custom_fields.1.label', 'Matricule')
+            ->set('data.custom_fields.1.value', 'QR-2026-001')
+            ->call('removeProgressiveField', 0)
+            ->assertSet('data.custom_fields.0.label', 'Matricule')
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+
+        $this->assertSame([
+            ['label' => 'Matricule', 'value' => 'QR-2026-001'],
+        ], data_get($qrCode->options, 'form_data.custom_fields'));
+
+        $this->get($qrCode->content)
+            ->assertOk()
+            ->assertSee('Matricule')
+            ->assertSee('QR-2026-001')
+            ->assertDontSee('Champ à supprimer');
+    }
 }
