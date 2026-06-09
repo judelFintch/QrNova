@@ -2,6 +2,7 @@
 
 namespace App\Livewire\QrCode;
 
+use App\Models\QrCode;
 use App\Services\QrCodeService;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -11,6 +12,8 @@ use Livewire\WithFileUploads;
 class QrCodeGenerator extends Component
 {
     use WithFileUploads;
+
+    public ?QrCode $qrCode = null;
 
     public string $name = '';
 
@@ -36,8 +39,22 @@ class QrCodeGenerator extends Component
 
     public ?int $generatedId = null;
 
-    public function mount(QrCodeService $service): void
+    public function mount(QrCodeService $service, mixed $qrCode = null): void
     {
+        if ($qrCode instanceof QrCode && $qrCode->exists) {
+            $this->qrCode = $qrCode;
+            $this->name = $qrCode->name ?? '';
+            $this->type = $qrCode->type;
+            $this->data = data_get($qrCode->options, 'form_data', ['content' => $qrCode->content]);
+            $this->foregroundColor = $qrCode->foreground_color;
+            $this->backgroundColor = $qrCode->background_color;
+            $this->size = $qrCode->size;
+            $this->margin = $qrCode->margin;
+            $this->format = $qrCode->format;
+            $this->errorCorrection = data_get($qrCode->options, 'error_correction', 'medium');
+            $this->generatedId = $qrCode->id;
+        }
+
         $this->refreshPreview($service);
     }
 
@@ -69,18 +86,23 @@ class QrCodeGenerator extends Component
     {
         $validated = $this->validate($this->rules(), $this->messages());
         $logoPath = $this->logo?->store('qr-logos', 'public');
-        $qrCode = $service->create($this->serviceAttributes($validated), $logoPath);
+        $qrCode = $this->qrCode
+            ? $service->update($this->qrCode, $this->serviceAttributes($validated), $logoPath)
+            : $service->create($this->serviceAttributes($validated), $logoPath);
 
+        $this->qrCode = $qrCode;
         $this->generatedId = $qrCode->id;
         $this->previewSvg = $service->downloadContents($qrCode, 'svg');
-        session()->flash('success', 'Votre QR Code a été généré et sauvegardé.');
+        session()->flash('success', $this->qrCode->wasRecentlyCreated
+            ? 'Votre QR Code a été généré et sauvegardé.'
+            : 'Votre QR Code a été modifié et régénéré.');
     }
 
     public function render()
     {
         return view('livewire.qr-code.qr-code-generator', [
             'types' => QrCodeService::TYPES,
-        ])->layout('layouts.app', ['title' => 'Générateur de QR Code']);
+        ])->layout('layouts.app', ['title' => $this->qrCode ? 'Modifier le QR Code' : 'Générateur de QR Code']);
     }
 
     private function refreshPreview(QrCodeService $service): void

@@ -55,4 +55,42 @@ class QrCodePagesTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_an_existing_qr_code_can_be_modified_and_regenerated(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'Ancien nom')
+            ->set('data.content', 'https://old.example.com')
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+        $oldPath = $qrCode->file_path;
+
+        $this->get(route('qr-code.edit', $qrCode))
+            ->assertOk()
+            ->assertSee('Modifier le QR Code');
+
+        Livewire::test(QrCodeGenerator::class, ['qrCode' => $qrCode])
+            ->assertSet('name', 'Ancien nom')
+            ->assertSet('data.content', 'https://old.example.com')
+            ->set('name', 'Nouveau nom')
+            ->set('data.content', 'https://new.example.com')
+            ->set('format', 'svg')
+            ->call('generate')
+            ->assertHasNoErrors()
+            ->assertSet('generatedId', $qrCode->id);
+
+        $qrCode->refresh();
+
+        $this->assertSame('Nouveau nom', $qrCode->name);
+        $this->assertSame('https://new.example.com', $qrCode->content);
+        $this->assertSame('svg', $qrCode->format);
+        $this->assertSame(1, QrCode::count());
+        Storage::disk('public')->assertMissing($oldPath);
+        Storage::disk('public')->assertExists($qrCode->file_path);
+    }
 }

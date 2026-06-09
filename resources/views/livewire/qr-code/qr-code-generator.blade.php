@@ -2,9 +2,9 @@
     <section class="relative overflow-hidden border-b border-slate-200 bg-white">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_#e0e7ff,_transparent_45%)]"></div>
         <div class="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-            <span class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-700">Studio QR professionnel</span>
-            <h1 class="mt-5 max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">Créez un QR Code qui vous ressemble.</h1>
-            <p class="mt-4 max-w-2xl text-lg leading-8 text-slate-600">Choisissez un type, personnalisez le rendu et téléchargez un fichier prêt à partager ou à imprimer.</p>
+            <span class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-700">{{ $qrCode ? 'Modification du QR Code' : 'Studio QR professionnel' }}</span>
+            <h1 class="mt-5 max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">{{ $qrCode ? 'Modifiez et régénérez votre QR Code.' : 'Créez un QR Code qui vous ressemble.' }}</h1>
+            <p class="mt-4 max-w-2xl text-lg leading-8 text-slate-600">{{ $qrCode ? 'Ajustez le contenu ou le style sans créer une nouvelle entrée dans votre historique.' : 'Choisissez un type, personnalisez le rendu et téléchargez un fichier prêt à partager ou à imprimer.' }}</p>
         </div>
     </section>
 
@@ -74,7 +74,7 @@
 
                 <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 p-6 sm:flex-row sm:justify-end sm:p-8">
                     <button type="button" wire:click="preview" wire:loading.attr="disabled" class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50">Actualiser l’aperçu</button>
-                    <button type="submit" wire:loading.attr="disabled" class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="generate">Générer et sauvegarder</span><span wire:loading wire:target="generate">Génération...</span></button>
+                    <button type="submit" wire:loading.attr="disabled" class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="generate">{{ $qrCode ? 'Enregistrer les modifications' : 'Générer et sauvegarder' }}</span><span wire:loading wire:target="generate">{{ $qrCode ? 'Mise à jour...' : 'Génération...' }}</span></button>
                 </div>
             </form>
 

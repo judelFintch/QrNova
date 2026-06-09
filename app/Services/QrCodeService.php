@@ -58,17 +58,12 @@ class QrCodeService
     public function create(array $attributes, ?string $logoPath = null): QrCodeModel
     {
         $content = $this->buildContent($attributes['type'], $attributes['data']);
-        $options = [
-            'error_correction' => $attributes['error_correction'],
-            'form_data' => $attributes['data'],
-            'logo_path' => $logoPath,
-        ];
 
         $qrCode = QrCodeModel::create([
             'name' => $attributes['name'],
             'type' => $attributes['type'],
             'content' => $content,
-            'options' => $options,
+            'options' => $this->options($attributes, $logoPath),
             'format' => $attributes['format'],
             'foreground_color' => $attributes['foreground_color'],
             'background_color' => $attributes['background_color'],
@@ -78,6 +73,38 @@ class QrCodeService
 
         $path = $this->store($qrCode, $attributes['format']);
         $qrCode->update(['file_path' => $path]);
+
+        return $qrCode->refresh();
+    }
+
+    public function update(QrCodeModel $qrCode, array $attributes, ?string $logoPath = null): QrCodeModel
+    {
+        $oldFilePath = $qrCode->file_path;
+        $oldLogoPath = data_get($qrCode->options, 'logo_path');
+        $logoPath ??= $oldLogoPath;
+
+        $qrCode->update([
+            'name' => $attributes['name'],
+            'type' => $attributes['type'],
+            'content' => $this->buildContent($attributes['type'], $attributes['data']),
+            'options' => $this->options($attributes, $logoPath),
+            'format' => $attributes['format'],
+            'foreground_color' => $attributes['foreground_color'],
+            'background_color' => $attributes['background_color'],
+            'size' => $attributes['size'],
+            'margin' => $attributes['margin'],
+        ]);
+
+        $path = $this->store($qrCode, $attributes['format']);
+        $qrCode->update(['file_path' => $path]);
+
+        if ($oldFilePath && $oldFilePath !== $path) {
+            Storage::disk('public')->delete($oldFilePath);
+        }
+
+        if ($oldLogoPath && $oldLogoPath !== $logoPath) {
+            Storage::disk('public')->delete($oldLogoPath);
+        }
 
         return $qrCode->refresh();
     }
@@ -105,6 +132,15 @@ class QrCodeService
         Storage::disk('public')->put($path, $this->downloadContents($qrCode, $format));
 
         return $path;
+    }
+
+    private function options(array $attributes, ?string $logoPath): array
+    {
+        return [
+            'error_correction' => $attributes['error_correction'],
+            'form_data' => $attributes['data'],
+            'logo_path' => $logoPath,
+        ];
     }
 
     private function build(string $content, array $attributes, string $format, ?string $logoPath): string
