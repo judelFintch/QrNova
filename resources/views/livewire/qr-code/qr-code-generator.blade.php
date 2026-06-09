@@ -120,6 +120,9 @@
                 @if ($generatedId)
                     <div class="mt-5 grid grid-cols-3 gap-2">@foreach (['png' => 'PNG', 'svg' => 'SVG', 'pdf' => 'PDF'] as $value => $label)<a href="{{ route('qr-code.download', ['qrCode' => $generatedId, 'format' => $value]) }}" class="rounded-xl bg-slate-950 px-3 py-3 text-center text-xs font-bold text-white transition hover:bg-indigo-600">{{ $label }}</a>@endforeach</div>
                     <a href="{{ route('qr-code.show', $generatedId) }}" class="mt-3 block text-center text-sm font-bold text-indigo-600 hover:text-indigo-800">Voir la fiche détaillée →</a>
+                    @if ($type === 'progressive' && $qrCode)
+                        <div class="mt-5"><x-share-link :url="$qrCode->content" :title="$qrCode->name" text="Découvrez ce profil" /></div>
+                    @endif
                 @endif
             </aside>
         </div>

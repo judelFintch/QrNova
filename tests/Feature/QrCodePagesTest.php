@@ -243,10 +243,14 @@ class QrCodePagesTest extends TestCase
             ->set('type', 'progressive')
             ->set('data.phone', '+243 999 000 111')
             ->call('generate')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertSee('Partager le lien');
 
         $qrCode = QrCode::firstOrFail();
 
+        $this->get(route('qr-code.index'))
+            ->assertOk()
+            ->assertSee('Partager');
         $this->get(route('qr-code.show', $qrCode))
             ->assertOk()
             ->assertSee('Partager le lien')
