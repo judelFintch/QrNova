@@ -14,7 +14,10 @@ class AuthenticationTest extends TestCase
 
     public function test_login_page_is_available_to_guests(): void
     {
-        $this->get(route('login'))->assertOk();
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('Conçu par')
+            ->assertSee('https://www.fintchweb.com/');
     }
 
     public function test_user_can_log_in_and_log_out(): void

@@ -39,7 +39,7 @@
     <footer class="mt-16 border-t border-slate-200 bg-white">
         <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
             <p>© {{ date('Y') }} QrNova. Vos QR Codes, simplement.</p>
-            <p>Laravel · Livewire · Tailwind CSS</p>
+            <p>Conçu par <a href="https://www.fintchweb.com/" target="_blank" rel="noopener noreferrer" class="font-bold text-indigo-600 transition hover:text-indigo-800">FintchWeb</a></p>
         </div>
     </footer>
     @livewireScripts
