@@ -44,5 +44,8 @@
                 @endforeach
             </dl>
         </article>
+        <div class="mt-6">
+            <x-share-link :url="$qrCode->content" :title="$qrCode->name" text="Découvrez ce profil" />
+        </div>
     </div>
 @endsection

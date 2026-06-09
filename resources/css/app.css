@@ -11,6 +11,10 @@
 }
 
 @layer components {
+    [x-cloak] {
+        display: none !important;
+    }
+
     .label {
         @apply text-sm font-bold text-slate-700;
     }

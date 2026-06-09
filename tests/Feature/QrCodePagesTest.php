@@ -137,6 +137,8 @@ class QrCodePagesTest extends TestCase
         $this->get($publicUrl)
             ->assertOk()
             ->assertSee('+243 999 000 111')
+            ->assertSee('Partager le lien')
+            ->assertSee($publicUrl)
             ->assertDontSee('Nouvelle adresse');
 
         $this->actingAs(User::factory()->create());
@@ -229,5 +231,26 @@ class QrCodePagesTest extends TestCase
             ->assertOk()
             ->assertDontSee('+243 999 000 111')
             ->assertDontSee('Adresse à supprimer');
+    }
+
+    public function test_progressive_qr_code_management_page_displays_share_actions(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'Profil à partager')
+            ->set('type', 'progressive')
+            ->set('data.phone', '+243 999 000 111')
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+
+        $this->get(route('qr-code.show', $qrCode))
+            ->assertOk()
+            ->assertSee('Partager le lien')
+            ->assertSee('WhatsApp')
+            ->assertSee($qrCode->content);
     }
 }
