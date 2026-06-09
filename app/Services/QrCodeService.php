@@ -159,7 +159,7 @@ class QrCodeService
             backgroundColor: new Color($backgroundRed, $backgroundGreen, $backgroundBlue),
             logoPath: $logoPath ?? '',
             logoResizeToWidth: $logoPath ? (int) max(32, (int) $attributes['size'] / 5) : null,
-            logoPunchoutBackground: (bool) $logoPath,
+            logoPunchoutBackground: (bool) $logoPath && $writer instanceof PngWriter,
         ))->build();
 
         if ($format !== 'pdf') {

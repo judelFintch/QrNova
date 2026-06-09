@@ -6,6 +6,7 @@ use App\Livewire\QrCode\QrCodeGenerator;
 use App\Models\QrCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -92,5 +93,27 @@ class QrCodePagesTest extends TestCase
         $this->assertSame(1, QrCode::count());
         Storage::disk('public')->assertMissing($oldPath);
         Storage::disk('public')->assertExists($qrCode->file_path);
+    }
+
+    public function test_a_qr_code_with_logo_can_be_previewed_and_downloaded_as_svg(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'QR avec logo')
+            ->set('data.content', 'https://example.com')
+            ->set('logo', UploadedFile::fake()->image('logo.png', 100, 100))
+            ->call('preview')
+            ->assertHasNoErrors()
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+
+        $this->get(route('qr-code.show', $qrCode))->assertOk();
+        $this->get(route('qr-code.download', [$qrCode, 'format' => 'svg']))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/svg+xml');
     }
 }
