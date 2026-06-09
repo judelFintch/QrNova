@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class QrCode extends Model
 {
     protected $fillable = [
+        'user_id',
         'name',
         'type',
         'content',
@@ -48,5 +50,10 @@ class QrCode extends Model
                 Storage::disk('public')->delete($photoPath);
             }
         });
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

@@ -10,6 +10,7 @@ use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -65,6 +66,7 @@ class QrCodeService
             : $this->buildContent($attributes['type'], $attributes['data']);
 
         $qrCode = QrCodeModel::create([
+            'user_id' => Auth::id(),
             'name' => $attributes['name'],
             'type' => $attributes['type'],
             'content' => $content,

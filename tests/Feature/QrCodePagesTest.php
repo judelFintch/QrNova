@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\QrCode\QrCodeGenerator;
+use App\Livewire\QrCode\QrCodeIndex;
 use App\Models\QrCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,7 +121,8 @@ class QrCodePagesTest extends TestCase
     public function test_a_progressive_qr_code_keeps_its_public_url_when_information_is_added_later(): void
     {
         Storage::fake('public');
-        $this->actingAs(User::factory()->create());
+        $owner = User::factory()->create();
+        $this->actingAs($owner);
 
         Livewire::test(QrCodeGenerator::class)
             ->set('name', 'Contact progressif')
@@ -141,7 +143,7 @@ class QrCodePagesTest extends TestCase
             ->assertSee($publicUrl)
             ->assertDontSee('Nouvelle adresse');
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($owner);
 
         Livewire::test(QrCodeGenerator::class, ['qrCode' => $qrCode])
             ->set('data.address', 'Nouvelle adresse')
@@ -256,5 +258,57 @@ class QrCodePagesTest extends TestCase
             ->assertSee('Partager le lien')
             ->assertSee('WhatsApp')
             ->assertSee($qrCode->content);
+    }
+
+    public function test_qr_codes_are_isolated_between_users(): void
+    {
+        Storage::fake('public');
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $this->actingAs($owner);
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'QR privé')
+            ->set('data.content', 'https://private.example.com')
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+
+        $this->assertSame($owner->id, $qrCode->user_id);
+        $this->actingAs($otherUser);
+
+        $this->get(route('qr-code.index'))
+            ->assertOk()
+            ->assertDontSee('QR privé');
+        $this->get(route('qr-code.show', $qrCode))->assertForbidden();
+        $this->get(route('qr-code.edit', $qrCode))->assertForbidden();
+        $this->get(route('qr-code.download', $qrCode))->assertForbidden();
+
+        Livewire::test(QrCodeIndex::class)
+            ->call('delete', $qrCode->id)
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('qr_codes', ['id' => $qrCode->id]);
+    }
+
+    public function test_progressive_public_page_remains_accessible_to_non_owners(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'Profil public')
+            ->set('type', 'progressive')
+            ->set('data.phone', '+243 999 000 111')
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+
+        $this->post(route('logout'));
+        $this->get($qrCode->content)
+            ->assertOk()
+            ->assertSee('Profil public');
     }
 }

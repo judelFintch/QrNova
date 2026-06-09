@@ -4,6 +4,7 @@ namespace App\Livewire\QrCode;
 
 use App\Models\QrCode;
 use App\Services\QrCodeService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -54,6 +55,8 @@ class QrCodeGenerator extends Component
     public function mount(QrCodeService $service, mixed $qrCode = null): void
     {
         if ($qrCode instanceof QrCode && $qrCode->exists) {
+            Gate::authorize('update', $qrCode);
+
             $this->qrCode = $qrCode;
             $this->name = $qrCode->name ?? '';
             $this->type = $qrCode->type;
@@ -135,6 +138,10 @@ class QrCodeGenerator extends Component
 
     public function generate(QrCodeService $service): void
     {
+        if ($this->qrCode) {
+            Gate::authorize('update', $this->qrCode);
+        }
+
         $validated = $this->validate($this->rules(), $this->messages());
         $logoPath = $this->logo?->store('qr-logos', 'public');
 

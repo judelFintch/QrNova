@@ -4,6 +4,7 @@ namespace App\Livewire\QrCode;
 
 use App\Models\QrCode;
 use App\Services\QrCodeService;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class QrCodeShow extends Component
@@ -14,6 +15,8 @@ class QrCodeShow extends Component
 
     public function mount(QrCode $qrCode, QrCodeService $service): void
     {
+        Gate::authorize('view', $qrCode);
+
         $this->qrCode = $qrCode;
         $this->previewSvg = $service->downloadContents($qrCode, 'svg');
     }
