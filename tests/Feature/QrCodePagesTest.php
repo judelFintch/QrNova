@@ -190,4 +190,44 @@ class QrCodePagesTest extends TestCase
             ->assertSee('QR-2026-001')
             ->assertDontSee('Champ à supprimer');
     }
+
+    public function test_initial_progressive_fields_can_be_removed_and_restored(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'Profil initial')
+            ->set('type', 'progressive')
+            ->set('data.phone', '+243 999 000 111')
+            ->set('data.address', 'Adresse à supprimer')
+            ->set('profilePhoto', UploadedFile::fake()->image('profil.jpg', 300, 300))
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+        $photoPath = data_get($qrCode->options, 'form_data.photo_path');
+
+        Livewire::test(QrCodeGenerator::class, ['qrCode' => $qrCode])
+            ->call('removeProgressiveInitialField', 'phone')
+            ->call('removeProgressiveInitialField', 'address')
+            ->call('removeProgressiveInitialField', 'photo_path')
+            ->assertSet('data.phone', null)
+            ->assertSet('data.address', null)
+            ->assertSet('data.photo_path', null)
+            ->call('restoreProgressiveInitialField', 'phone')
+            ->assertSet('data.hidden_fields', ['address', 'photo_path'])
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode->refresh();
+
+        Storage::disk('public')->assertMissing($photoPath);
+        $this->assertNull(data_get($qrCode->options, 'form_data.phone'));
+        $this->assertNull(data_get($qrCode->options, 'form_data.address'));
+        $this->get($qrCode->content)
+            ->assertOk()
+            ->assertDontSee('+243 999 000 111')
+            ->assertDontSee('Adresse à supprimer');
+    }
 }

@@ -13,6 +13,16 @@ class QrCodeGenerator extends Component
 {
     use WithFileUploads;
 
+    public const PROGRESSIVE_FIELDS = [
+        'display_name' => 'Nom affiché',
+        'phone' => 'Téléphone',
+        'email' => 'E-mail',
+        'website' => 'Site web',
+        'address' => 'Adresse',
+        'description' => 'Description',
+        'photo_path' => 'Photo publique',
+    ];
+
     public ?QrCode $qrCode = null;
 
     public string $name = '';
@@ -98,6 +108,31 @@ class QrCodeGenerator extends Component
         $this->data['custom_fields'] = array_values($this->data['custom_fields']);
     }
 
+    public function removeProgressiveInitialField(string $field): void
+    {
+        abort_unless(array_key_exists($field, self::PROGRESSIVE_FIELDS), 404);
+
+        unset($this->data[$field]);
+        $this->data['hidden_fields'] = array_values(array_unique([
+            ...($this->data['hidden_fields'] ?? []),
+            $field,
+        ]));
+
+        if ($field === 'photo_path') {
+            $this->profilePhoto = null;
+        }
+    }
+
+    public function restoreProgressiveInitialField(string $field): void
+    {
+        abort_unless(array_key_exists($field, self::PROGRESSIVE_FIELDS), 404);
+
+        $this->data['hidden_fields'] = array_values(array_filter(
+            $this->data['hidden_fields'] ?? [],
+            fn (string $hiddenField): bool => $hiddenField !== $field,
+        ));
+    }
+
     public function generate(QrCodeService $service): void
     {
         $validated = $this->validate($this->rules(), $this->messages());
@@ -123,6 +158,7 @@ class QrCodeGenerator extends Component
     {
         return view('livewire.qr-code.qr-code-generator', [
             'types' => QrCodeService::TYPES,
+            'progressiveFields' => self::PROGRESSIVE_FIELDS,
         ])->layout('layouts.app', ['title' => $this->qrCode ? 'Modifier le QR Code' : 'Générateur de QR Code']);
     }
 
@@ -216,7 +252,7 @@ class QrCodeGenerator extends Component
             ],
             'progressive' => [
                 'data.display_name' => ['nullable', 'string', 'max:150'],
-                'data.phone' => ['required', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
+                'data.phone' => ['nullable', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
                 'data.email' => ['nullable', 'email:rfc', 'max:255'],
                 'data.address' => ['nullable', 'string', 'max:500'],
                 'data.website' => ['nullable', 'url:http,https', 'max:2048'],
@@ -224,6 +260,8 @@ class QrCodeGenerator extends Component
                 'data.custom_fields' => ['nullable', 'array', 'max:20'],
                 'data.custom_fields.*.label' => ['required', 'string', 'max:100'],
                 'data.custom_fields.*.value' => ['required', 'string', 'max:1000'],
+                'data.hidden_fields' => ['nullable', 'array'],
+                'data.hidden_fields.*' => ['string', Rule::in(array_keys(self::PROGRESSIVE_FIELDS))],
             ],
             default => [],
         });
