@@ -35,6 +35,8 @@ class QrCodeGenerator extends Component
 
     public ?TemporaryUploadedFile $logo = null;
 
+    public ?TemporaryUploadedFile $profilePhoto = null;
+
     public ?string $previewSvg = null;
 
     public ?int $generatedId = null;
@@ -60,7 +62,7 @@ class QrCodeGenerator extends Component
 
     public function updatedType(): void
     {
-        $this->reset('data', 'logo', 'previewSvg', 'generatedId');
+        $this->reset('data', 'logo', 'profilePhoto', 'previewSvg', 'generatedId');
         $this->data = $this->type === 'url' ? ['content' => 'https://example.com'] : [];
         $this->resetValidation();
     }
@@ -86,6 +88,11 @@ class QrCodeGenerator extends Component
     {
         $validated = $this->validate($this->rules(), $this->messages());
         $logoPath = $this->logo?->store('qr-logos', 'public');
+
+        if ($this->profilePhoto) {
+            $this->data['photo_path'] = $this->profilePhoto->store('progressive-profiles', 'public');
+        }
+
         $qrCode = $this->qrCode
             ? $service->update($this->qrCode, $this->serviceAttributes($validated), $logoPath)
             : $service->create($this->serviceAttributes($validated), $logoPath);
@@ -116,10 +123,16 @@ class QrCodeGenerator extends Component
 
     private function serviceAttributes(?array $validated = null): array
     {
+        $data = $this->data;
+
+        if ($this->type === 'progressive' && $this->qrCode) {
+            $data['public_url'] = $this->qrCode->content;
+        }
+
         return [
             'name' => $validated['name'] ?? $this->name,
             'type' => $this->type,
-            'data' => $this->data,
+            'data' => $data,
             'foreground_color' => $this->foregroundColor,
             'background_color' => $this->backgroundColor,
             'size' => $this->size,
@@ -141,6 +154,7 @@ class QrCodeGenerator extends Component
             'format' => ['required', Rule::in(['png', 'svg', 'pdf'])],
             'errorCorrection' => ['required', Rule::in(['low', 'medium', 'quartile', 'high'])],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'profilePhoto' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
         ];
 
         return array_merge($rules, match ($this->type) {
@@ -186,6 +200,14 @@ class QrCodeGenerator extends Component
                 'data.location' => ['nullable', 'string', 'max:300'],
                 'data.description' => ['nullable', 'string', 'max:1000'],
             ],
+            'progressive' => [
+                'data.display_name' => ['nullable', 'string', 'max:150'],
+                'data.phone' => ['required', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
+                'data.email' => ['nullable', 'email:rfc', 'max:255'],
+                'data.address' => ['nullable', 'string', 'max:500'],
+                'data.website' => ['nullable', 'url:http,https', 'max:2048'],
+                'data.description' => ['nullable', 'string', 'max:1000'],
+            ],
             default => [],
         });
     }
@@ -198,6 +220,7 @@ class QrCodeGenerator extends Component
             'data.content.url' => 'Saisissez une URL complète et valide.',
             'data.phone.regex' => 'Saisissez un numéro de téléphone valide.',
             'logo.max' => 'Le logo ne doit pas dépasser 2 Mo.',
+            'profilePhoto.max' => 'La photo ne doit pas dépasser 4 Mo.',
         ];
     }
 }

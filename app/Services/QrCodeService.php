@@ -28,6 +28,7 @@ class QrCodeService
         'location' => 'Localisation',
         'event' => 'Événement',
         'social' => 'Réseaux sociaux',
+        'progressive' => 'Profil progressif',
     ];
 
     public function buildContent(string $type, array $data): string
@@ -51,18 +52,23 @@ class QrCodeService
             'location' => sprintf('geo:%s,%s?q=%s,%s', $data['latitude'], $data['longitude'], $data['latitude'], $data['longitude']),
             'event' => $this->buildEvent($data),
             'social' => trim((string) ($data['content'] ?? '')),
+            'progressive' => (string) ($data['public_url'] ?? url('/p/apercu')),
             default => throw new InvalidArgumentException('Type de QR Code non pris en charge.'),
         };
     }
 
     public function create(array $attributes, ?string $logoPath = null): QrCodeModel
     {
-        $content = $this->buildContent($attributes['type'], $attributes['data']);
+        $publicToken = $attributes['type'] === 'progressive' ? Str::random(40) : null;
+        $content = $publicToken
+            ? route('qr-code.progressive', $publicToken)
+            : $this->buildContent($attributes['type'], $attributes['data']);
 
         $qrCode = QrCodeModel::create([
             'name' => $attributes['name'],
             'type' => $attributes['type'],
             'content' => $content,
+            'public_token' => $publicToken,
             'options' => $this->options($attributes, $logoPath),
             'format' => $attributes['format'],
             'foreground_color' => $attributes['foreground_color'],
@@ -81,12 +87,19 @@ class QrCodeService
     {
         $oldFilePath = $qrCode->file_path;
         $oldLogoPath = data_get($qrCode->options, 'logo_path');
+        $oldPhotoPath = data_get($qrCode->options, 'form_data.photo_path');
         $logoPath ??= $oldLogoPath;
+        $publicToken = $attributes['type'] === 'progressive'
+            ? ($qrCode->public_token ?? Str::random(40))
+            : null;
 
         $qrCode->update([
             'name' => $attributes['name'],
             'type' => $attributes['type'],
-            'content' => $this->buildContent($attributes['type'], $attributes['data']),
+            'content' => $publicToken
+                ? route('qr-code.progressive', $publicToken)
+                : $this->buildContent($attributes['type'], $attributes['data']),
+            'public_token' => $publicToken,
             'options' => $this->options($attributes, $logoPath),
             'format' => $attributes['format'],
             'foreground_color' => $attributes['foreground_color'],
@@ -104,6 +117,12 @@ class QrCodeService
 
         if ($oldLogoPath && $oldLogoPath !== $logoPath) {
             Storage::disk('public')->delete($oldLogoPath);
+        }
+
+        $photoPath = data_get($attributes, 'data.photo_path');
+
+        if ($oldPhotoPath && $oldPhotoPath !== $photoPath) {
+            Storage::disk('public')->delete($oldPhotoPath);
         }
 
         return $qrCode->refresh();

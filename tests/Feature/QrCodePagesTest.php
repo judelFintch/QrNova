@@ -116,4 +116,45 @@ class QrCodePagesTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'image/svg+xml');
     }
+
+    public function test_a_progressive_qr_code_keeps_its_public_url_when_information_is_added_later(): void
+    {
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class)
+            ->set('name', 'Contact progressif')
+            ->set('type', 'progressive')
+            ->set('data.phone', '+243 999 000 111')
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode = QrCode::firstOrFail();
+        $publicUrl = $qrCode->content;
+
+        $this->assertNotNull($qrCode->public_token);
+        $this->post(route('logout'))->assertRedirect(route('login'));
+        $this->get($publicUrl)
+            ->assertOk()
+            ->assertSee('+243 999 000 111')
+            ->assertDontSee('Nouvelle adresse');
+
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(QrCodeGenerator::class, ['qrCode' => $qrCode])
+            ->set('data.address', 'Nouvelle adresse')
+            ->set('profilePhoto', UploadedFile::fake()->image('profil.jpg', 300, 300))
+            ->call('generate')
+            ->assertHasNoErrors();
+
+        $qrCode->refresh();
+
+        $this->assertSame($publicUrl, $qrCode->content);
+        $this->assertSame(1, QrCode::count());
+        Storage::disk('public')->assertExists(data_get($qrCode->options, 'form_data.photo_path'));
+
+        $this->get($publicUrl)
+            ->assertOk()
+            ->assertSee('Nouvelle adresse');
+    }
 }

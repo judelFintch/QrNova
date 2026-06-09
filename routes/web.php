@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProgressiveQrCodeController;
 use App\Http\Controllers\QrCodeDownloadController;
 use App\Livewire\QrCode\QrCodeGenerator;
 use App\Livewire\QrCode\QrCodeIndex;
@@ -13,6 +14,8 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
 });
+
+Route::get('/p/{token}', ProgressiveQrCodeController::class)->name('qr-code.progressive');
 
 Route::middleware('auth')->group(function (): void {
     Route::view('/', 'pages.home')->name('home');

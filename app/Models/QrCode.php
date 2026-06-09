@@ -11,6 +11,7 @@ class QrCode extends Model
         'name',
         'type',
         'content',
+        'public_token',
         'options',
         'file_path',
         'format',
@@ -37,9 +38,14 @@ class QrCode extends Model
             }
 
             $logoPath = data_get($qrCode->options, 'logo_path');
+            $photoPath = data_get($qrCode->options, 'form_data.photo_path');
 
             if ($logoPath) {
                 Storage::disk('public')->delete($logoPath);
+            }
+
+            if ($photoPath) {
+                Storage::disk('public')->delete($photoPath);
             }
         });
     }

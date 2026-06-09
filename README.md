@@ -50,6 +50,19 @@ Pour créer ou mettre à jour le compte seedé :
 php artisan db:seed
 ```
 
+## QR Code progressif
+
+Le type **Profil progressif** génère une URL publique stable. La fiche peut ensuite
+être enrichie avec une adresse, une photo, un e-mail ou un site web sans réimprimer
+le QR Code.
+
+En production, `APP_URL` doit contenir le domaine public exact avant la génération
+du QR Code, par exemple :
+
+```dotenv
+APP_URL=https://qrnova.example.com
+```
+
 ## Commandes de création utilisées
 
 ```bash
