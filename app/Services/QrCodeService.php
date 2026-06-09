@@ -149,7 +149,7 @@ class QrCodeService
         [$foregroundRed, $foregroundGreen, $foregroundBlue] = $this->hexToRgb($attributes['foreground_color']);
         [$backgroundRed, $backgroundGreen, $backgroundBlue] = $this->hexToRgb($attributes['background_color']);
 
-        $result = (new Builder(
+        $builder = new Builder(
             writer: $writer,
             data: $content,
             errorCorrectionLevel: $this->errorCorrection($attributes['error_correction'] ?? 'medium'),
@@ -159,8 +159,11 @@ class QrCodeService
             backgroundColor: new Color($backgroundRed, $backgroundGreen, $backgroundBlue),
             logoPath: $logoPath ?? '',
             logoResizeToWidth: $logoPath ? (int) max(32, (int) $attributes['size'] / 5) : null,
-            logoPunchoutBackground: (bool) $logoPath && $writer instanceof PngWriter,
-        ))->build();
+        );
+
+        $result = $writer instanceof PngWriter
+            ? $builder->build(logoPunchoutBackground: (bool) $logoPath)
+            : $builder->build();
 
         if ($format !== 'pdf') {
             return $result->getString();
