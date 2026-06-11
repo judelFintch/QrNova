@@ -1,4 +1,24 @@
-<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8"
+     x-data="{
+         dlModal: false,
+         fmt: 'png',
+         size: '',
+         get isVector() { return ['svg','eps'].includes(this.fmt); },
+         get isPrint() { return this.fmt === 'print'; },
+         buildUrl() {
+             const base = '{{ route('qr-code.download', $qrCode) }}';
+             const p = new URLSearchParams({ format: this.fmt });
+             if (this.size) p.set('size', this.size);
+             return base + '?' + p.toString();
+         },
+         printQr() {
+             const svg = document.getElementById('qr-svg-preview').innerHTML;
+             const w = window.open('', '_blank', 'width=700,height=700');
+             w.document.write('<html><head><title>{{ addslashes($qrCode->name ?: 'QR Code') }}</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff}svg{max-width:80vmin;height:auto}@media print{@page{margin:0}}</style></head><body>' + svg + '</body></html>');
+             w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+             this.dlModal = false;
+         }
+     }">
 
     {{-- Header --}}
     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -19,11 +39,11 @@
                     Activer
                 @endif
             </button>
-            <a href="{{ route('qr-code.download', ['qrCode' => $qrCode, 'format' => $qrCode->format]) }}"
+            <button @click="dlModal = true"
                class="flex items-center gap-2 rounded-xl border border-indigo-300 px-4 py-2 text-sm font-bold text-indigo-600 transition hover:bg-indigo-50">
                 <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/></svg>
                 Télécharger
-            </a>
+            </button>
             <a href="{{ route('qr-code.edit', $qrCode) }}"
                class="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700">
                 <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z"/><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z"/></svg>
@@ -48,17 +68,14 @@
         {{-- Left: QR preview + downloads --}}
         <div class="space-y-4">
             <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-slate-50 p-5">
+                <div id="qr-svg-preview" class="grid aspect-square place-items-center overflow-hidden rounded-2xl bg-slate-50 p-5">
                     {!! $previewSvg !!}
                 </div>
-                <div class="mt-4 grid grid-cols-3 gap-2">
-                    @foreach(['png' => 'PNG', 'svg' => 'SVG', 'pdf' => 'PDF'] as $format => $label)
-                        <a href="{{ route('qr-code.download', ['qrCode' => $qrCode, 'format' => $format]) }}"
-                           class="rounded-xl bg-slate-950 px-3 py-2.5 text-center text-xs font-bold text-white transition hover:bg-indigo-600">
-                            {{ $label }}
-                        </a>
-                    @endforeach
-                </div>
+                <button @click="dlModal = true"
+                    class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 py-3 text-sm font-bold text-white transition hover:bg-indigo-600">
+                    <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/></svg>
+                    Télécharger / Imprimer
+                </button>
                 @if($qrCode->type === 'progressive')
                     <div class="mt-4"><x-share-link :url="$qrCode->content" :title="$qrCode->name" text="Découvrez ce profil" /></div>
                 @endif
@@ -247,6 +264,97 @@
     </section>
 
 </div>
+
+    {{-- Download modal --}}
+    <div x-show="dlModal" x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="display:none">
+
+        {{-- Backdrop --}}
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="dlModal = false"></div>
+
+        {{-- Panel --}}
+        <div class="relative w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl"
+             @click.stop x-trap.noscroll="dlModal">
+
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-slate-950">Sélectionnez le format à télécharger</h2>
+                <button @click="dlModal = false" class="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/></svg>
+                </button>
+            </div>
+
+            <div class="mt-1 h-px bg-slate-100"></div>
+
+            {{-- Format grid --}}
+            <div class="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-6">
+                @foreach([
+                    'png'   => ['label' => 'PNG',     'icon' => 'raster'],
+                    'jpeg'  => ['label' => 'JPEG',    'icon' => 'raster'],
+                    'svg'   => ['label' => 'SVG',     'icon' => 'vector'],
+                    'pdf'   => ['label' => 'PDF',     'icon' => 'pdf'],
+                    'eps'   => ['label' => 'EPS',     'icon' => 'eps'],
+                    'print' => ['label' => 'Imprimer','icon' => 'print'],
+                ] as $fmtKey => $fmtInfo)
+                <button type="button"
+                    @click="fmt = '{{ $fmtKey }}'"
+                    :class="fmt === '{{ $fmtKey }}' ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
+                    class="relative flex flex-col items-center gap-2 rounded-2xl border p-3 transition">
+                    <span x-show="fmt === '{{ $fmtKey }}'" class="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-indigo-500">
+                        <svg class="size-3 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/></svg>
+                    </span>
+                    @if($fmtInfo['icon'] === 'print')
+                        <svg class="size-10 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z"/></svg>
+                    @elseif($fmtInfo['icon'] === 'pdf')
+                        <svg class="size-10 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    @elseif($fmtInfo['icon'] === 'eps')
+                        <svg class="size-10 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23-.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>
+                    @elseif($fmtInfo['icon'] === 'vector')
+                        <svg class="size-10 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z"/></svg>
+                    @else
+                        <svg class="size-10 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                    @endif
+                    <span class="text-xs font-bold text-slate-700">{{ $fmtInfo['label'] }}</span>
+                </button>
+                @endforeach
+            </div>
+
+            {{-- Size selector (hidden for vector formats and print) --}}
+            <div class="mt-5" x-show="!isVector && !isPrint">
+                <label class="block text-sm font-semibold text-slate-600">Taille du fichier</label>
+                <select x-model="size"
+                    class="mt-1.5 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                    <option value="">Par défaut ({{ $qrCode->size }} px)</option>
+                    <option value="500">Petite — 500 px</option>
+                    <option value="1000">Moyenne — 1 000 px</option>
+                    <option value="2000">Grande — 2 000 px</option>
+                    <option value="4000">Très grande — 4 000 px</option>
+                </select>
+            </div>
+
+            {{-- Actions --}}
+            <div class="mt-6 flex gap-3">
+                <template x-if="!isPrint">
+                    <a :href="buildUrl()" @click="dlModal = false"
+                       class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700">
+                        <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/></svg>
+                        Télécharger
+                    </a>
+                </template>
+                <template x-if="isPrint">
+                    <button @click="printQr()"
+                        class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700">
+                        <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2.75C5 1.784 5.784 1 6.75 1h6.5c.966 0 1.75.784 1.75 1.75v3.552c.377.046.752.097 1.126.153C17.99 6.754 19 8.021 19 9.5V17a1 1 0 0 1-1 1h-2v.25A1.75 1.75 0 0 1 14.25 20h-8.5A1.75 1.75 0 0 1 4 18.25V18H2a1 1 0 0 1-1-1V9.5c0-1.479 1.01-2.746 2.874-3.045.374-.056.75-.107 1.126-.153V2.75ZM6.5 4.5v-.75a.25.25 0 0 1 .25-.25h6.5a.25.25 0 0 1 .25.25V4.5h-7ZM8 17.5h4V15H8v2.5Zm-2 0V15H4.5v2.5H6Zm8.5 0V15H13v2.5h1.5ZM5 12.25a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd"/></svg>
+                        Imprimer
+                    </button>
+                </template>
+                <button @click="dlModal = false"
+                    class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>

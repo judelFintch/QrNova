@@ -8,6 +8,7 @@ use Dompdf\Options;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Writer\EpsWriter;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\Auth;
@@ -148,14 +149,18 @@ class QrCodeService
         return $this->build($content, $attributes, 'svg', $absoluteLogoPath);
     }
 
-    public function downloadContents(QrCodeModel $qrCode, string $format): string
+    public function downloadContents(QrCodeModel $qrCode, string $format, ?int $sizeOverride = null): string
     {
-        return $this->build($qrCode->content, $this->attributesFromModel($qrCode), $format, $this->logoAbsolutePath($qrCode));
+        $attributes = $this->attributesFromModel($qrCode, $sizeOverride);
+
+        return $this->build($qrCode->content, $attributes, $format, $this->logoAbsolutePath($qrCode));
     }
 
     public function filename(QrCodeModel $qrCode, string $format): string
     {
-        return 'qr-code-'.Str::slug($qrCode->name ?: $qrCode->type).'.'.$format;
+        $ext = $format === 'jpeg' ? 'jpg' : $format;
+
+        return 'qr-code-'.Str::slug($qrCode->name ?: $qrCode->type).'.'.$ext;
     }
 
     private function store(QrCodeModel $qrCode, string $format): string
@@ -177,9 +182,15 @@ class QrCodeService
 
     private function build(string $content, array $attributes, string $format, ?string $logoPath): string
     {
-        $writer = $format === 'png' ? new PngWriter : new SvgWriter;
         [$foregroundRed, $foregroundGreen, $foregroundBlue] = $this->hexToRgb($attributes['foreground_color']);
         [$backgroundRed, $backgroundGreen, $backgroundBlue] = $this->hexToRgb($attributes['background_color']);
+
+        $isRaster = in_array($format, ['png', 'jpeg']);
+        $writer = match ($format) {
+            'eps' => new EpsWriter,
+            'svg' => new SvgWriter,
+            default => new PngWriter,
+        };
 
         $builder = new Builder(
             writer: $writer,
@@ -190,12 +201,16 @@ class QrCodeService
             foregroundColor: new Color($foregroundRed, $foregroundGreen, $foregroundBlue),
             backgroundColor: new Color($backgroundRed, $backgroundGreen, $backgroundBlue),
             logoPath: $logoPath ?? '',
-            logoResizeToWidth: $logoPath ? (int) max(32, (int) $attributes['size'] / 5) : null,
+            logoResizeToWidth: $logoPath && $isRaster ? (int) max(32, (int) $attributes['size'] / 5) : null,
         );
 
         $result = $writer instanceof PngWriter
             ? $builder->build(logoPunchoutBackground: (bool) $logoPath)
             : $builder->build();
+
+        if ($format === 'jpeg') {
+            return $this->pngToJpeg($result->getString(), $backgroundRed, $backgroundGreen, $backgroundBlue);
+        }
 
         if ($format !== 'pdf') {
             return $result->getString();
@@ -209,12 +224,30 @@ class QrCodeService
         return $dompdf->output();
     }
 
-    private function attributesFromModel(QrCodeModel $qrCode): array
+    private function pngToJpeg(string $pngData, int $bgR, int $bgG, int $bgB): string
+    {
+        $src = imagecreatefromstring($pngData);
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $dst = imagecreatetruecolor($w, $h);
+        $bg = imagecolorallocate($dst, $bgR, $bgG, $bgB);
+        imagefill($dst, 0, 0, $bg);
+        imagecopy($dst, $src, 0, 0, 0, 0, $w, $h);
+        ob_start();
+        imagejpeg($dst, null, 95);
+        $jpeg = ob_get_clean();
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        return $jpeg;
+    }
+
+    private function attributesFromModel(QrCodeModel $qrCode, ?int $sizeOverride = null): array
     {
         return [
             'foreground_color' => $qrCode->foreground_color,
             'background_color' => $qrCode->background_color,
-            'size' => $qrCode->size,
+            'size' => $sizeOverride ?? $qrCode->size,
             'margin' => $qrCode->margin,
             'error_correction' => data_get($qrCode->options, 'error_correction', 'medium'),
         ];
