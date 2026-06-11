@@ -58,12 +58,12 @@ class QrCodeService
         };
     }
 
+    public const TRACKABLE_TYPES = ['url', 'progressive'];
+
     public function create(array $attributes, ?string $logoPath = null): QrCodeModel
     {
-        $publicToken = $attributes['type'] === 'progressive' ? Str::random(40) : null;
-        $content = $publicToken
-            ? route('qr-code.progressive', $publicToken)
-            : $this->buildContent($attributes['type'], $attributes['data']);
+        $publicToken = in_array($attributes['type'], self::TRACKABLE_TYPES) ? Str::random(40) : null;
+        $content = $this->resolveContent($attributes['type'], $attributes['data'], $publicToken);
 
         $qrCode = QrCodeModel::create([
             'user_id' => Auth::id(),
@@ -91,16 +91,14 @@ class QrCodeService
         $oldLogoPath = data_get($qrCode->options, 'logo_path');
         $oldPhotoPath = data_get($qrCode->options, 'form_data.photo_path');
         $logoPath ??= $oldLogoPath;
-        $publicToken = $attributes['type'] === 'progressive'
+        $publicToken = in_array($attributes['type'], self::TRACKABLE_TYPES)
             ? ($qrCode->public_token ?? Str::random(40))
             : null;
 
         $qrCode->update([
             'name' => $attributes['name'],
             'type' => $attributes['type'],
-            'content' => $publicToken
-                ? route('qr-code.progressive', $publicToken)
-                : $this->buildContent($attributes['type'], $attributes['data']),
+            'content' => $this->resolveContent($attributes['type'], $attributes['data'], $publicToken),
             'public_token' => $publicToken,
             'options' => $this->options($attributes, $logoPath),
             'format' => $attributes['format'],
@@ -128,6 +126,19 @@ class QrCodeService
         }
 
         return $qrCode->refresh();
+    }
+
+    private function resolveContent(string $type, array $data, ?string $publicToken): string
+    {
+        if ($type === 'progressive') {
+            return route('qr-code.progressive', $publicToken);
+        }
+
+        if ($type === 'url' && $publicToken) {
+            return route('qr-code.scan', $publicToken);
+        }
+
+        return $this->buildContent($type, $data);
     }
 
     public function preview(array $attributes, ?string $absoluteLogoPath = null): string

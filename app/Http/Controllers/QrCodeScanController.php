@@ -4,17 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\QrCode;
 use App\Models\QrCodeScan;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 
-class ProgressiveQrCodeController extends Controller
+class QrCodeScanController extends Controller
 {
-    public function __invoke(Request $request, string $token): View
+    public function __invoke(Request $request, string $token): RedirectResponse
     {
-        $qrCode = QrCode::query()
-            ->where('type', 'progressive')
-            ->where('public_token', $token)
+        $qrCode = QrCode::where('public_token', $token)
+            ->where('type', 'url')
             ->firstOrFail();
 
         QrCodeScan::create([
@@ -25,10 +24,13 @@ class ProgressiveQrCodeController extends Controller
             'scanned_at' => now(),
         ]);
 
-        return view('pages.progressive-qr-code', [
-            'qrCode' => $qrCode,
-            'profile' => data_get($qrCode->options, 'form_data', []),
-        ]);
+        if (! $qrCode->isAccessible()) {
+            abort(404);
+        }
+
+        $destination = data_get($qrCode->options, 'form_data.content', $qrCode->content);
+
+        return redirect()->away($destination);
     }
 
     private function detectDevice(string $ua): string

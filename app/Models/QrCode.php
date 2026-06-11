@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class QrCode extends Model
@@ -21,6 +22,11 @@ class QrCode extends Model
         'background_color',
         'size',
         'margin',
+        'is_active',
+        'print_material',
+        'print_copies',
+        'campaign_start_at',
+        'campaign_end_at',
     ];
 
     protected function casts(): array
@@ -29,6 +35,10 @@ class QrCode extends Model
             'options' => 'array',
             'size' => 'integer',
             'margin' => 'integer',
+            'is_active' => 'boolean',
+            'print_copies' => 'integer',
+            'campaign_start_at' => 'datetime',
+            'campaign_end_at' => 'datetime',
         ];
     }
 
@@ -55,5 +65,25 @@ class QrCode extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function scans(): HasMany
+    {
+        return $this->hasMany(QrCodeScan::class);
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->campaign_end_at !== null && $this->campaign_end_at->isPast();
+    }
+
+    public function isAccessible(): bool
+    {
+        return $this->is_active && ! $this->isExpired();
+    }
+
+    public function getDisplayUrlAttribute(): ?string
+    {
+        return data_get($this->options, 'form_data.content') ?: $this->content;
     }
 }

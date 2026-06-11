@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProgressiveQrCodeController;
 use App\Http\Controllers\QrCodeDownloadController;
+use App\Http\Controllers\QrCodeScanController;
 use App\Livewire\QrCode\QrCodeGenerator;
 use App\Livewire\QrCode\QrCodeIndex;
 use App\Livewire\QrCode\QrCodeShow;
@@ -16,6 +17,7 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::get('/p/{token}', ProgressiveQrCodeController::class)->name('qr-code.progressive');
+Route::get('/go/{token}', QrCodeScanController::class)->name('qr-code.scan');
 
 Route::middleware('auth')->group(function (): void {
     Route::view('/', 'pages.home')->name('home');
