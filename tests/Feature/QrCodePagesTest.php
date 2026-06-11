@@ -89,7 +89,7 @@ class QrCodePagesTest extends TestCase
         $qrCode->refresh();
 
         $this->assertSame('Nouveau nom', $qrCode->name);
-        $this->assertSame('https://new.example.com', $qrCode->content);
+        $this->assertSame('https://new.example.com', $qrCode->display_url);
         $this->assertSame('svg', $qrCode->format);
         $this->assertSame(1, QrCode::count());
         Storage::disk('public')->assertMissing($oldPath);

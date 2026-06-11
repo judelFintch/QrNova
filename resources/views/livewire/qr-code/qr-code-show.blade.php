@@ -132,7 +132,7 @@
                     </div>
 
                     @if($qrCode->type === 'progressive')
-                        <x-share-link :url="$qrCode->content" :title="$qrCode->name" text="Découvrez ce profil" compact />
+                        <x-share-link :url="$qrCode->content" :title="$qrCode->name" text="Découvrez ce profil" />
                     @endif
                 </div>
 
