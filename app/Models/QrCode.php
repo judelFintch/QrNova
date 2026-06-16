@@ -51,6 +51,7 @@ class QrCode extends Model
 
             $logoPath = data_get($qrCode->options, 'logo_path');
             $photoPath = data_get($qrCode->options, 'form_data.photo_path');
+            $uploadedFilePath = data_get($qrCode->options, 'form_data.uploaded_file_path');
 
             if ($logoPath) {
                 Storage::disk('public')->delete($logoPath);
@@ -58,6 +59,10 @@ class QrCode extends Model
 
             if ($photoPath) {
                 Storage::disk('public')->delete($photoPath);
+            }
+
+            if ($uploadedFilePath) {
+                Storage::disk('public')->delete($uploadedFilePath);
             }
         });
     }

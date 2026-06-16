@@ -20,6 +20,7 @@ class QrCodeService
 {
     public const TYPES = [
         'url' => 'Lien web',
+        'file' => 'Fichier',
         'text' => 'Texte',
         'whatsapp' => 'WhatsApp',
         'email' => 'E-mail',
@@ -37,6 +38,9 @@ class QrCodeService
     {
         return match ($type) {
             'url', 'text' => trim((string) ($data['content'] ?? '')),
+            'file' => filled($data['uploaded_file_path'] ?? null)
+                ? Storage::disk('public')->url((string) $data['uploaded_file_path'])
+                : 'https://example.com/fichier',
             'whatsapp' => 'https://wa.me/'.$this->digits($data['phone'] ?? '').'?text='.rawurlencode((string) ($data['message'] ?? '')),
             'email' => 'mailto:'.trim((string) ($data['email'] ?? '')).'?'.http_build_query([
                 'subject' => $data['subject'] ?? '',
@@ -59,7 +63,7 @@ class QrCodeService
         };
     }
 
-    public const TRACKABLE_TYPES = ['url', 'progressive'];
+    public const TRACKABLE_TYPES = ['url', 'file', 'progressive'];
 
     public function create(array $attributes, ?string $logoPath = null): QrCodeModel
     {
@@ -91,6 +95,7 @@ class QrCodeService
         $oldFilePath = $qrCode->file_path;
         $oldLogoPath = data_get($qrCode->options, 'logo_path');
         $oldPhotoPath = data_get($qrCode->options, 'form_data.photo_path');
+        $oldUploadedFilePath = data_get($qrCode->options, 'form_data.uploaded_file_path');
         $logoPath ??= $oldLogoPath;
         $publicToken = in_array($attributes['type'], self::TRACKABLE_TYPES)
             ? ($qrCode->public_token ?? Str::random(40))
@@ -126,6 +131,12 @@ class QrCodeService
             Storage::disk('public')->delete($oldPhotoPath);
         }
 
+        $uploadedFilePath = data_get($attributes, 'data.uploaded_file_path');
+
+        if ($oldUploadedFilePath && $oldUploadedFilePath !== $uploadedFilePath) {
+            Storage::disk('public')->delete($oldUploadedFilePath);
+        }
+
         return $qrCode->refresh();
     }
 
@@ -135,7 +146,7 @@ class QrCodeService
             return route('qr-code.progressive', $publicToken);
         }
 
-        if ($type === 'url' && $publicToken) {
+        if (in_array($type, ['url', 'file'], true) && $publicToken) {
             return route('qr-code.scan', $publicToken);
         }
 

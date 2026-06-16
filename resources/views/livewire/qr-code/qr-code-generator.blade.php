@@ -28,7 +28,18 @@
                 <div class="space-y-6 p-6 sm:p-8">
                     <div><label class="label">Nom du QR Code</label><input wire:model="name" type="text" maxlength="100" placeholder="Ex. Menu du restaurant" class="field">@error('name')<p class="error">{{ $message }}</p>@enderror</div>
 
-                    @if (in_array($type, ['url', 'social']))
+                    @if ($type === 'file')
+                        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm leading-6 text-indigo-800">Le QR Code redirigera directement vers votre fichier. Les scans seront comptabilisés.</div>
+                        <div>
+                            <label class="label">Fichier à attacher @if (!$qrCode)<span class="text-red-500">*</span>@endif</label>
+                            @if ($qrCode && data_get($data, 'uploaded_file_name'))
+                                <p class="mb-2 flex items-center gap-2 text-sm text-slate-600"><span class="inline-block rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs">{{ data_get($data, 'uploaded_file_name') }}</span><span class="text-slate-400">— fichier actuel (laisser vide pour conserver)</span></p>
+                            @endif
+                            <input wire:model="uploadedFile" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.mp4" class="mt-2 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-bold file:text-white">
+                            @error('uploadedFile')<p class="error">{{ $message }}</p>@enderror
+                            <p class="mt-2 text-xs text-slate-500">Formats : PDF, Word, Excel, PowerPoint, images, audio, vidéo — max 10 Mo.</p>
+                        </div>
+                    @elseif (in_array($type, ['url', 'social']))
                         <div><label class="label">{{ $type === 'social' ? 'Lien du profil social' : 'URL du site' }}</label><input wire:model="data.content" type="url" placeholder="https://example.com" class="field">@error('data.content')<p class="error">{{ $message }}</p>@enderror</div>
                     @elseif ($type === 'text')
                         <div><label class="label">Texte à encoder</label><textarea wire:model="data.content" rows="5" maxlength="4000" placeholder="Votre texte..." class="field"></textarea>@error('data.content')<p class="error">{{ $message }}</p>@enderror</div>

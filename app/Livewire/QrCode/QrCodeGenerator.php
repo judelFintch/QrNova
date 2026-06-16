@@ -48,6 +48,8 @@ class QrCodeGenerator extends Component
 
     public ?TemporaryUploadedFile $profilePhoto = null;
 
+    public ?TemporaryUploadedFile $uploadedFile = null;
+
     public ?string $previewSvg = null;
 
     public ?int $generatedId = null;
@@ -75,7 +77,7 @@ class QrCodeGenerator extends Component
 
     public function updatedType(): void
     {
-        $this->reset('data', 'logo', 'profilePhoto', 'previewSvg', 'generatedId');
+        $this->reset('data', 'logo', 'profilePhoto', 'uploadedFile', 'previewSvg', 'generatedId');
         $this->data = $this->type === 'url' ? ['content' => 'https://example.com'] : [];
         $this->resetValidation();
     }
@@ -149,6 +151,11 @@ class QrCodeGenerator extends Component
             $this->data['photo_path'] = $this->profilePhoto->store('progressive-profiles', 'public');
         }
 
+        if ($this->type === 'file' && $this->uploadedFile) {
+            $this->data['uploaded_file_name'] = $this->uploadedFile->getClientOriginalName();
+            $this->data['uploaded_file_path'] = $this->uploadedFile->store('qr-uploads', 'public');
+        }
+
         $qrCode = $this->qrCode
             ? $service->update($this->qrCode, $this->serviceAttributes($validated), $logoPath)
             : $service->create($this->serviceAttributes($validated), $logoPath);
@@ -216,6 +223,10 @@ class QrCodeGenerator extends Component
 
         return array_merge($rules, match ($this->type) {
             'url', 'social' => ['data.content' => ['required', 'url:http,https', 'max:2048']],
+            'file' => ['uploadedFile' => $this->qrCode
+                ? ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,png,jpg,jpeg,gif,webp,mp3,mp4']
+                : ['required', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,png,jpg,jpeg,gif,webp,mp3,mp4'],
+            ],
             'text' => ['data.content' => ['required', 'string', 'max:4000']],
             'whatsapp' => [
                 'data.phone' => ['required', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
@@ -283,6 +294,9 @@ class QrCodeGenerator extends Component
             'data.phone.regex' => 'Saisissez un numéro de téléphone valide.',
             'logo.max' => 'Le logo ne doit pas dépasser 2 Mo.',
             'profilePhoto.max' => 'La photo ne doit pas dépasser 4 Mo.',
+            'uploadedFile.required' => 'Veuillez sélectionner un fichier à attacher.',
+            'uploadedFile.max' => 'Le fichier ne doit pas dépasser 10 Mo.',
+            'uploadedFile.mimes' => 'Format non accepté (PDF, Word, Excel, PowerPoint, images, audio, vidéo).',
         ];
     }
 }
