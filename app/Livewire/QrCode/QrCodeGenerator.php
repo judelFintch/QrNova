@@ -5,6 +5,7 @@ namespace App\Livewire\QrCode;
 use App\Models\QrCode;
 use App\Services\QrCodeService;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -48,7 +49,9 @@ class QrCodeGenerator extends Component
 
     public ?TemporaryUploadedFile $profilePhoto = null;
 
-    public ?TemporaryUploadedFile $uploadedFile = null;
+    public array $uploadedFiles = [];
+
+    public array $filesToDelete = [];
 
     public ?string $previewSvg = null;
 
@@ -70,6 +73,15 @@ class QrCodeGenerator extends Component
             $this->format = $qrCode->format;
             $this->errorCorrection = data_get($qrCode->options, 'error_correction', 'medium');
             $this->generatedId = $qrCode->id;
+
+            // Migrate old single-file format to multi-file format
+            if ($this->type === 'file' && isset($this->data['uploaded_file_path']) && empty($this->data['uploaded_files'])) {
+                $this->data['uploaded_files'] = [[
+                    'name' => $this->data['uploaded_file_name'] ?? basename($this->data['uploaded_file_path']),
+                    'path' => $this->data['uploaded_file_path'],
+                    'size' => 0,
+                ]];
+            }
         }
 
         $this->refreshPreview($service);
@@ -77,7 +89,7 @@ class QrCodeGenerator extends Component
 
     public function updatedType(): void
     {
-        $this->reset('data', 'logo', 'profilePhoto', 'uploadedFile', 'previewSvg', 'generatedId');
+        $this->reset('data', 'logo', 'profilePhoto', 'uploadedFiles', 'filesToDelete', 'previewSvg', 'generatedId');
         $this->data = $this->type === 'url' ? ['content' => 'https://example.com'] : [];
         $this->resetValidation();
     }
@@ -97,6 +109,11 @@ class QrCodeGenerator extends Component
     {
         $this->validate($this->rules(), $this->messages());
         $this->refreshPreview($service);
+    }
+
+    public function markFileForDeletion(string $path): void
+    {
+        $this->filesToDelete[] = $path;
     }
 
     public function addProgressiveField(): void
@@ -151,9 +168,30 @@ class QrCodeGenerator extends Component
             $this->data['photo_path'] = $this->profilePhoto->store('progressive-profiles', 'public');
         }
 
-        if ($this->type === 'file' && $this->uploadedFile) {
-            $this->data['uploaded_file_name'] = $this->uploadedFile->getClientOriginalName();
-            $this->data['uploaded_file_path'] = $this->uploadedFile->store('qr-uploads', 'public');
+        if ($this->type === 'file') {
+            $existingFiles = $this->data['uploaded_files'] ?? [];
+
+            foreach ($this->filesToDelete as $pathToDelete) {
+                Storage::disk('public')->delete($pathToDelete);
+                $existingFiles = array_values(array_filter($existingFiles, fn ($f) => $f['path'] !== $pathToDelete));
+            }
+            $this->filesToDelete = [];
+
+            foreach ($this->uploadedFiles as $file) {
+                $existingFiles[] = [
+                    'name' => $file->getClientOriginalName(),
+                    'path' => $file->store('qr-uploads', 'public'),
+                    'size' => $file->getSize(),
+                ];
+            }
+            $this->uploadedFiles = [];
+            $this->data['uploaded_files'] = $existingFiles;
+
+            if (empty($existingFiles)) {
+                $this->addError('uploadedFiles', 'Au moins un fichier est requis.');
+
+                return;
+            }
         }
 
         $qrCode = $this->qrCode
@@ -223,9 +261,9 @@ class QrCodeGenerator extends Component
 
         return array_merge($rules, match ($this->type) {
             'url', 'social' => ['data.content' => ['required', 'url:http,https', 'max:2048']],
-            'file' => ['uploadedFile' => $this->qrCode
-                ? ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,png,jpg,jpeg,gif,webp,mp3,mp4']
-                : ['required', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,png,jpg,jpeg,gif,webp,mp3,mp4'],
+            'file' => [
+                'uploadedFiles' => ['array'],
+                'uploadedFiles.*' => ['file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,png,jpg,jpeg,gif,webp,mp3,mp4'],
             ],
             'text' => ['data.content' => ['required', 'string', 'max:4000']],
             'whatsapp' => [
@@ -294,9 +332,8 @@ class QrCodeGenerator extends Component
             'data.phone.regex' => 'Saisissez un numéro de téléphone valide.',
             'logo.max' => 'Le logo ne doit pas dépasser 2 Mo.',
             'profilePhoto.max' => 'La photo ne doit pas dépasser 4 Mo.',
-            'uploadedFile.required' => 'Veuillez sélectionner un fichier à attacher.',
-            'uploadedFile.max' => 'Le fichier ne doit pas dépasser 10 Mo.',
-            'uploadedFile.mimes' => 'Format non accepté (PDF, Word, Excel, PowerPoint, images, audio, vidéo).',
+            'uploadedFiles.*.max' => 'Chaque fichier ne doit pas dépasser 10 Mo.',
+            'uploadedFiles.*.mimes' => 'Format non accepté (PDF, Word, Excel, PowerPoint, images, audio, vidéo).',
         ];
     }
 }

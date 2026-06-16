@@ -38,9 +38,11 @@ class QrCodeService
     {
         return match ($type) {
             'url', 'text' => trim((string) ($data['content'] ?? '')),
-            'file' => filled($data['uploaded_file_path'] ?? null)
-                ? Storage::disk('public')->url((string) $data['uploaded_file_path'])
-                : 'https://example.com/fichier',
+            'file' => filled($data['uploaded_files'][0]['path'] ?? null)
+                ? Storage::disk('public')->url($data['uploaded_files'][0]['path'])
+                : (filled($data['uploaded_file_path'] ?? null)
+                    ? Storage::disk('public')->url((string) $data['uploaded_file_path'])
+                    : 'https://example.com/fichier'),
             'whatsapp' => 'https://wa.me/'.$this->digits($data['phone'] ?? '').'?text='.rawurlencode((string) ($data['message'] ?? '')),
             'email' => 'mailto:'.trim((string) ($data['email'] ?? '')).'?'.http_build_query([
                 'subject' => $data['subject'] ?? '',

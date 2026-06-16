@@ -30,13 +30,30 @@ class QrCodeScanController extends Controller
         }
 
         if ($qrCode->type === 'file') {
-            $filePath = data_get($qrCode->options, 'form_data.uploaded_file_path');
+            $files = data_get($qrCode->options, 'form_data.uploaded_files', []);
 
-            if (! $filePath || ! Storage::disk('public')->exists($filePath)) {
+            if (! empty($files)) {
+                if (count($files) === 1) {
+                    $path = $files[0]['path'];
+
+                    if (! Storage::disk('public')->exists($path)) {
+                        abort(404);
+                    }
+
+                    return redirect()->away(Storage::disk('public')->url($path));
+                }
+
+                return redirect()->route('qr-code.files', $qrCode->public_token);
+            }
+
+            // Backward compat: old single-file format
+            $legacyPath = data_get($qrCode->options, 'form_data.uploaded_file_path');
+
+            if (! $legacyPath || ! Storage::disk('public')->exists($legacyPath)) {
                 abort(404);
             }
 
-            return redirect()->away(Storage::disk('public')->url($filePath));
+            return redirect()->away(Storage::disk('public')->url($legacyPath));
         }
 
         $destination = data_get($qrCode->options, 'form_data.content', $qrCode->content);
