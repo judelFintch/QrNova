@@ -100,6 +100,47 @@
                         <div class="grid gap-5 sm:grid-cols-2"><div><label class="label">Début</label><input wire:model="data.starts_at" type="datetime-local" class="field">@error('data.starts_at')<p class="error">{{ $message }}</p>@enderror</div><div><label class="label">Fin</label><input wire:model="data.ends_at" type="datetime-local" class="field">@error('data.ends_at')<p class="error">{{ $message }}</p>@enderror</div></div>
                         <div><label class="label">Lieu</label><input wire:model="data.location" class="field">@error('data.location')<p class="error">{{ $message }}</p>@enderror</div><div><label class="label">Description</label><textarea wire:model="data.description" rows="3" class="field"></textarea>@error('data.description')<p class="error">{{ $message }}</p>@enderror</div>
                     @elseif ($type === 'progressive')
+                        {{-- FILE UPLOAD — en haut, en rouge --}}
+                        @php($existingProgressiveFiles = $data['uploaded_files'] ?? [])
+                        <div class="rounded-2xl border-2 border-red-300 bg-red-50 p-5">
+                            <p class="text-base font-black text-red-700">AJOUTER UN FICHIER</p>
+                            <p class="mt-1 text-sm text-red-600">Le fichier sera affiché comme lien de téléchargement sur votre profil public.</p>
+
+                            @if ($existingProgressiveFiles)
+                                <ul class="mt-3 space-y-2">
+                                    @foreach ($existingProgressiveFiles as $file)
+                                        @unless (in_array($file['path'], $filesToDelete))
+                                            <li class="flex items-center gap-3 rounded-xl border border-red-200 bg-white px-4 py-3">
+                                                <span class="min-w-0 flex-1 truncate font-mono text-xs text-slate-700">{{ $file['name'] }}</span>
+                                                @if ($file['size'] > 0)
+                                                    <span class="shrink-0 text-xs text-slate-400">{{ $file['size'] >= 1048576 ? round($file['size'] / 1048576, 1).' Mo' : round($file['size'] / 1024, 1).' Ko' }}</span>
+                                                @endif
+                                                <button type="button" wire:click="markFileForDeletion('{{ $file['path'] }}')" class="shrink-0 text-xs font-bold text-red-600 hover:text-red-800">Supprimer</button>
+                                            </li>
+                                        @endunless
+                                    @endforeach
+                                </ul>
+                                @if ($filesToDelete)
+                                    <p class="mt-2 text-xs text-amber-600">{{ count($filesToDelete) }} fichier(s) seront supprimés à l'enregistrement.</p>
+                                @endif
+                            @endif
+
+                            <label class="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-red-300 bg-white px-4 py-6 text-center transition hover:border-red-500 hover:bg-red-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="size-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                </svg>
+                                <span class="text-sm font-bold text-red-700">Cliquer pour uploader un fichier</span>
+                                <span class="text-xs text-slate-500">PDF, Word, Excel, PowerPoint, images, audio, vidéo — max 10 Mo</span>
+                                <input wire:model="uploadedFiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.mp4" class="sr-only">
+                            </label>
+                            <div wire:loading wire:target="uploadedFiles" class="mt-2 flex items-center gap-2 text-sm text-red-600">
+                                <span class="size-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></span>
+                                Chargement...
+                            </div>
+                            @error('uploadedFiles')<p class="error">{{ $message }}</p>@enderror
+                            @error('uploadedFiles.*')<p class="error">{{ $message }}</p>@enderror
+                        </div>
+
                         <div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm leading-6 text-indigo-800">Ce QR Code conserve toujours la même adresse publique. Vous pourrez compléter ou modifier cette fiche plus tard sans réimprimer le QR.</div>
                         @php($hiddenProgressiveFields = $data['hidden_fields'] ?? [])
                         <div class="grid gap-5 sm:grid-cols-2">

@@ -43,6 +43,36 @@
                     @endif
                 @endforeach
             </dl>
+
+            @php($attachedFiles = collect(data_get($qrCode->options, 'form_data.uploaded_files', []))->filter(fn($f) => \Illuminate\Support\Facades\Storage::disk('public')->exists($f['path'] ?? ''))->values())
+            @if ($attachedFiles->isNotEmpty())
+                <div class="border-t border-slate-100 px-6 py-6 sm:px-10">
+                    <p class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Fichiers joints</p>
+                    <div class="space-y-2">
+                        @foreach ($attachedFiles as $file)
+                            <a href="{{ asset('storage/' . $file['path']) }}" target="_blank" rel="noopener" download class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="text-xl">
+                                    @php $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)); @endphp
+                                    @if ($ext === 'pdf') 📄
+                                    @elseif (in_array($ext, ['doc','docx'])) 📝
+                                    @elseif (in_array($ext, ['xls','xlsx'])) 📊
+                                    @elseif (in_array($ext, ['ppt','pptx'])) 📋
+                                    @elseif (in_array($ext, ['png','jpg','jpeg','gif','webp'])) 🖼️
+                                    @elseif ($ext === 'mp3') 🎵
+                                    @elseif ($ext === 'mp4') 🎬
+                                    @else 📁
+                                    @endif
+                                </span>
+                                <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{{ $file['name'] }}</span>
+                                @if (($file['size'] ?? 0) > 0)
+                                    <span class="shrink-0 text-xs text-slate-400">{{ $file['size'] >= 1048576 ? round($file['size'] / 1048576, 1).' Mo' : round($file['size'] / 1024, 1).' Ko' }}</span>
+                                @endif
+                                <span class="shrink-0 text-xs font-bold text-indigo-600">Télécharger</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </article>
         <div class="mt-6">
             <x-share-link :url="$qrCode->content" :title="$qrCode->name" text="Découvrez ce profil" />

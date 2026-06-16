@@ -168,7 +168,7 @@ class QrCodeGenerator extends Component
             $this->data['photo_path'] = $this->profilePhoto->store('progressive-profiles', 'public');
         }
 
-        if ($this->type === 'file') {
+        if (in_array($this->type, ['file', 'progressive'], true)) {
             $existingFiles = $this->data['uploaded_files'] ?? [];
 
             foreach ($this->filesToDelete as $pathToDelete) {
@@ -187,7 +187,7 @@ class QrCodeGenerator extends Component
             $this->uploadedFiles = [];
             $this->data['uploaded_files'] = $existingFiles;
 
-            if (empty($existingFiles)) {
+            if ($this->type === 'file' && empty($existingFiles)) {
                 $this->addError('uploadedFiles', 'Au moins un fichier est requis.');
 
                 return;
@@ -318,6 +318,8 @@ class QrCodeGenerator extends Component
                 'data.custom_fields.*.value' => ['required', 'string', 'max:1000'],
                 'data.hidden_fields' => ['nullable', 'array'],
                 'data.hidden_fields.*' => ['string', Rule::in(array_keys(self::PROGRESSIVE_FIELDS))],
+                'uploadedFiles' => ['array'],
+                'uploadedFiles.*' => ['file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,png,jpg,jpeg,gif,webp,mp3,mp4'],
             ],
             default => [],
         });
