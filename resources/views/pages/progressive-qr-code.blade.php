@@ -44,7 +44,11 @@
                 @endforeach
             </dl>
 
-            @php($attachedFiles = collect(data_get($qrCode->options, 'form_data.uploaded_files', []))->filter(fn($f) => \Illuminate\Support\Facades\Storage::disk('public')->exists($f['path'] ?? ''))->values())
+            @php
+                $attachedFiles = collect(data_get($qrCode->options, 'form_data.uploaded_files', []))
+                    ->filter(fn ($f) => \Illuminate\Support\Facades\Storage::disk('public')->exists($f['path'] ?? ''))
+                    ->values();
+            @endphp
             @if ($attachedFiles->isNotEmpty())
                 <div class="border-t border-slate-100 px-6 py-6 sm:px-10">
                     <p class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Fichiers joints</p>
