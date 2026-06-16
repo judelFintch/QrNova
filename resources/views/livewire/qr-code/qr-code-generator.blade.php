@@ -55,11 +55,21 @@
                         @endif
 
                         <div>
-                            <label class="label">Ajouter des fichiers @if (!$existingFiles)<span class="text-red-500">*</span>@endif</label>
-                            <input wire:model="uploadedFiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.mp4" class="mt-2 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-bold file:text-white">
+                            <label class="label">{{ $existingFiles ? 'Ajouter d\'autres fichiers' : 'Fichiers à uploader' }} @if (!$existingFiles)<span class="text-red-500">*</span>@endif</label>
+                            <label class="mt-2 flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50 px-6 py-8 text-center transition hover:border-indigo-500 hover:bg-indigo-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="size-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                </svg>
+                                <span class="text-sm font-bold text-indigo-700">Cliquer pour choisir les fichiers</span>
+                                <span class="text-xs text-slate-500">PDF, Word, Excel, PowerPoint, images, audio, vidéo — max 10 Mo par fichier</span>
+                                <input wire:model="uploadedFiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.mp4" class="sr-only">
+                            </label>
+                            <div wire:loading wire:target="uploadedFiles" class="mt-2 flex items-center gap-2 text-sm text-indigo-600">
+                                <span class="size-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></span>
+                                Chargement des fichiers...
+                            </div>
                             @error('uploadedFiles')<p class="error">{{ $message }}</p>@enderror
                             @error('uploadedFiles.*')<p class="error">{{ $message }}</p>@enderror
-                            <p class="mt-2 text-xs text-slate-500">Sélectionnez plusieurs fichiers à la fois. Formats : PDF, Word, Excel, PowerPoint, images, audio, vidéo — max 10 Mo par fichier.</p>
                         </div>
                     @elseif (in_array($type, ['url', 'social']))
                         <div><label class="label">{{ $type === 'social' ? 'Lien du profil social' : 'URL du site' }}</label><input wire:model="data.content" type="url" placeholder="https://example.com" class="field">@error('data.content')<p class="error">{{ $message }}</p>@enderror</div>
